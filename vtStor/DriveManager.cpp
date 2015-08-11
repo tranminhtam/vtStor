@@ -17,8 +17,12 @@ limitations under the License.
 */
 #include "DriveManager.h"
 
+#include "StorageUtility.h"
+
 namespace vtStor
 {
+    std::shared_ptr<cDriveManager> cDriveManager::s_Instance = nullptr;
+
 cDriveManager::cDriveManager()
 {
 
@@ -30,6 +34,15 @@ cDriveManager::~cDriveManager()
     m_Drives.clear();
 }
 
+void cDriveManager::GetInstance(std::shared_ptr<cDriveManagerInterface>& DriveManager)
+{
+    if (nullptr == s_Instance)
+    {
+        s_Instance = std::shared_ptr<cDriveManager>(new cDriveManager());
+    }
+    DriveManager = s_Instance;
+}
+
 void cDriveManager::RegisterDriveEnumerator( std::shared_ptr<cDriveEnumeratorInterface> DriveEnumerator )
 {
     m_DriveEnumerators.push_back( DriveEnumerator );
@@ -38,21 +51,28 @@ void cDriveManager::RegisterDriveEnumerator( std::shared_ptr<cDriveEnumeratorInt
 eErrorCode cDriveManager::EnumerateDrives( eScanForHardwareChanges ScanForHardwareChanges )
 {
     eErrorCode error = eErrorCode::None;
+    bool successFlag = false;
 
     if ( eScanForHardwareChanges::Yes == ScanForHardwareChanges )
     {
-        //TODO: scan for hardware changes
+        // scan for hardware changes
+        m_Drives.clear();
+        m_DevicePaths.clear();
     }
+    vtStor::GetStorageDevicePaths(m_DevicePaths, eOnErrorBehavior::Continue);
 
-    U32 count = 0;
-    for ( auto& enumerator : m_DriveEnumerators )
+    for (const auto& devicePath : m_DevicePaths)
     {
-        error = enumerator->EnumerateDrives(m_Drives, count);
-        if (eErrorCode::None != error)
+        for (auto& enumerator : m_DriveEnumerators)
         {
-            //TODO: handle error
+            error = enumerator->EnumerateDrive(devicePath, m_Drives, successFlag);
+            if (true == successFlag)
+            {
+                successFlag = false;
+                break;
+            }      
         }
-    }
+    }    
 
     return( error );
 }
@@ -60,6 +80,16 @@ eErrorCode cDriveManager::EnumerateDrives( eScanForHardwareChanges ScanForHardwa
 const Vector_Drives& cDriveManager::GetDrives()
 {
     return( m_Drives );
+}
+
+std::shared_ptr<cDriveInterface> cDriveManager::GetDrive(const U32 DriveIndex)
+{
+    std::shared_ptr<cDriveInterface> driveInterface = nullptr;
+    if (m_Drives.size() > DriveIndex)
+    {
+        driveInterface = m_Drives[DriveIndex];
+    }
+    return(driveInterface);
 }
 
 }

@@ -17,11 +17,15 @@ limitations under the License.
 */
 #include <memory>
 
+#include "Buffer.h"
+#include "CommandHandlerAta.h"
+#include "DriveAtaCommandExtensions.h"
 #include "DriveEnumeratorAta.h"
+#include "ErrorCodes.h"
+#include "ProtocolAtaPassThrough.h"
 #include "vtStor.h"
 #include "vtStorAta.h"
-#include "Buffer.h"
-#include "DriveAtaCommandExtensions.h"
+#include "BusType.h"
 
 void main()
 {
@@ -32,18 +36,53 @@ void main()
     driveEnumeratorAta->EnumerateDrives( drives, count );
 #endif
 
-    std::unique_ptr<vtStor::cDriveManagerInterface> driveManager;
+    std::shared_ptr<vtStor::cDriveManagerInterface> driveManager;
     vtStorInit( driveManager );
 
-    vtStor::cAta::s_DefaultCommandHandlerCommandType = 1;
+    vtStor::cAta::s_DefaultCommandHandlerCommandType = 0;
     std::shared_ptr<vtStor::cDriveEnumeratorInterface> driveEnumeratorAta = std::make_unique<vtStor::cDriveEnumeratorAta>();
     driveManager->RegisterDriveEnumerator(driveEnumeratorAta);
-    driveManager->EnumerateDrives( vtStor::cDriveManagerInterface::eScanForHardwareChanges::No );
+    driveManager->EnumerateDrives( vtStor::eScanForHardwareChanges::No );
 
     vtStor::Vector_Drives drives = driveManager->GetDrives();
+    // Create data buffer
     std::shared_ptr<vtStor::cBufferInterface> dataBuffer = std::make_shared<vtStor::cBuffer>(512);
-    vtStor::Ata::IssueCommand_IdentifyDevice(drives[0], 1, dataBuffer);
+
+    if (vtStor::eBusType::Ata == drives[1]->GetBusType())
+    {
+        // Create protocol
+        std::shared_ptr<vtStor::Protocol::cProtocolInterface> protocol = std::make_shared<vtStor::Protocol::cAtaPassThrough>();
+        // Create command handler
+        std::shared_ptr<vtStor::cCommandHandlerInterface> commandHandlerAta = std::make_shared<vtStor::cCommandHandlerAta>(protocol);
+        // Register command handler
+        drives[1]->RegisterCommandHandler(vtStor::cAta::s_DefaultCommandHandlerCommandType, commandHandlerAta);
+
+        // Initialize and add more protocol, commandhandler here 
+    }
+
+    // Call command
+    vtStor::Ata::IssueCommand_IdentifyDevice(drives[1], vtStor::cAta::s_DefaultCommandHandlerCommandType, dataBuffer);
+    //vtStor::Ata::IssueCommand_ReadDma(drives[1], vtStor::cAta::s_DefaultCommandHandlerCommandType, dataBuffer, 10, 1);
+    //vtStor::Ata::IssueCommand_ReadBuffer(drives[1], vtStor::cAta::s_DefaultCommandHandlerCommandType, dataBuffer);
+    //vtStor::Ata::IssueCommand_Smart(drives[1], vtStor::cAta::s_DefaultCommandHandlerCommandType, dataBuffer, 208);
+
     vtStor::U8* data = dataBuffer->ToDataBuffer();
 
+    // dump buffer
+    for (int i = 0; i < 512; i++)
+    {
+        if (i % 16 == 15)
+        {
 
+            printf("%02X\n", *data);
+            data++;
+        }
+        else
+        {
+            printf("%02X ", *data);
+            data++;
+        }
+    }
+
+    getchar();
 }
