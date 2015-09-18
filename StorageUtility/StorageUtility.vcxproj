@@ -20,10 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Ata.cpp" />
+    <ClCompile Include="Scsi.cpp" />
     <ClCompile Include="Windows\StorageUtility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Ata.h" />
+    <ClInclude Include="Scsi.h" />
     <ClInclude Include="Windows\StorageUtility.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
