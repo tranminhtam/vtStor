@@ -20,7 +20,6 @@ import subprocess
 X86                         = "Win32"
 X64                         = "x64"
 RELEASE_NAME                = "Release"
-DEBUG_NAME                  = "Debug"
 RELEASE_DIR                 = "/{0}/".format( RELEASE_NAME )
 LIB_DIR                     = "/{0}/".format( "Lib" )
 DLL_DIR                     = "/{0}/".format( "Dll" )
@@ -28,7 +27,7 @@ SOURCE_DIR                  = "/{0}/".format( "Source" )
 
 MS_BUILD                    = "MSBuild"
 
-CONFIGURATION_BUILD_TYPE_SET    = { "/p:Configuration={0}".format( RELEASE_NAME ), "/p:Configuration={0}".format( DEBUG_NAME ) } 
+CONFIGURATION_BUILD_TYPE_SET    = { "/p:Configuration={0}".format( RELEASE_NAME ) } 
 
 BUILD_PLATFORM_X86          = "/p:Platform={0}".format( X86 )
 BUILD_PLATFORM_X64          = "/p:Platform={0}".format( X64 )
@@ -36,10 +35,6 @@ REBUILD_DEFAULT             = "/t:rebuild"
 
 projectName                 = "vtStor"
 PROJECTDIR                  = "vtStor_Release"
-RELEASE_LOCAL_DIR_X86       = "./{0}{1}".format( X86, RELEASE_NAME )
-RELEASE_LOCAL_DIR_X64       = "./{0}{1}".format( X64, RELEASE_NAME )
-DEBUG_LOCAL_DIR_X86       = "./{0}{1}".format( X86, DEBUG_NAME )
-DEBUG_LOCAL_DIR_X64       = "./{0}{1}".format( X64, DEBUG_NAME )
 ARCHIVE_TEMP                = "ArchiveTemp"
 ARCHIVE_TEMP_PATH           = "./{0}/".format( ARCHIVE_TEMP )
 
@@ -55,16 +50,15 @@ def Build( iBuildPlatform ) :
 
 def CopyRequireFilesForAllModes ( iConfiguration ) :
     CopyLibsAndDlls( iConfiguration, RELEASE_NAME )
-    CopyLibsAndDlls( iConfiguration, DEBUG_NAME )
 
 def CopyLibsAndDlls( iConfiguration, iBuildType ) :
     sourceDir = "./{0}{1}".format( iConfiguration, iBuildType )
     for file in os.listdir( sourceDir ) :            
         if file.endswith( ".dll" ) :
-            destDir = ARCHIVE_TEMP_PATH + PROJECTDIR + DLL_DIR + "/{0}".format( iBuildType ) + "/{0}/".format( iConfiguration )
+            destDir = ARCHIVE_TEMP_PATH + PROJECTDIR + DLL_DIR + "/{0}/".format( iConfiguration )
             CopyAFileToADir( sourceDir, file, destDir)
         elif file.endswith( ".lib" ) :
-            destDir = ARCHIVE_TEMP_PATH + PROJECTDIR + LIB_DIR + "/{0}".format( iBuildType ) + "/{0}/".format( iConfiguration )
+            destDir = ARCHIVE_TEMP_PATH + PROJECTDIR + LIB_DIR + "/{0}/".format( iConfiguration )
             CopyAFileToADir( sourceDir, file, destDir)
 
 def CopyAFileToADir( iSourceDir, iFile, iDestDir) :
@@ -106,10 +100,8 @@ def CleanUpRelease() :
 
 def CleanupFiles( iConfiguration ) :
     if X86 == iConfiguration or X64 == iConfiguration :
-        Prune( "/{0}/{1}/{2}/{3}/{4}".format( ARCHIVE_TEMP, PROJECTDIR, LIB_DIR, RELEASE_NAME, iConfiguration ) )
-        Prune( "/{0}/{1}/{2}/{3}/{4}".format( ARCHIVE_TEMP, PROJECTDIR, DLL_DIR, RELEASE_NAME, iConfiguration ) )
-        Prune( "/{0}/{1}/{2}/{3}/{4}".format( ARCHIVE_TEMP, PROJECTDIR, LIB_DIR, DEBUG_NAME, iConfiguration ) )
-        Prune( "/{0}/{1}/{2}/{3}/{4}".format( ARCHIVE_TEMP, PROJECTDIR, DLL_DIR, DEBUG_NAME, iConfiguration ) )
+        Prune( "/{0}/{1}/{2}/{3}".format( ARCHIVE_TEMP, PROJECTDIR, LIB_DIR, iConfiguration ) )
+        Prune( "/{0}/{1}/{2}/{3}".format( ARCHIVE_TEMP, PROJECTDIR, DLL_DIR, iConfiguration ) )
 
 def Prune( iDirPath ) :
     curDir = os.getcwd()
